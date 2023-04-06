@@ -65,6 +65,7 @@ em new -c <old-experiment> <new-experiment>
 
 ### 📥 Checkout a branch
 If you clone a repository at a new location, or you have co-workers pushed their experiments to remote
+
 ```bash
 git fetch  # sync with remote
 em checkout remotes/origin/<experiment-name>
@@ -73,6 +74,17 @@ em checkout remotes/origin/<experiment-name>
 ### 📤  Push to remote
 ```bash
 em push <experiment-name>
+```
+
+### 🗑️ Delete a local branch
+```bash
+em delete <experiment-name>
+```
+
+**Note**: Only local branch is deleted, to delete a remote branch, use native git comand, or simply use your git-web UI like github.
+
+```bash
+git push <remote> :<branch-name>
 ```
 
 ### 👀 Integrate with `fzf`

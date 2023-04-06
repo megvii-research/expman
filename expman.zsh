@@ -11,12 +11,15 @@ Usage:
 	em cd <branch-name>
 	em new [-c] <base-branch-name> <new-branch-name>
 	em checkout <branch-name>
+	em delete <branch-name>
 
 Commands:
 	init: create a new project
 	cd: cd into a checked-out branch
 	checkout: create a work tree and cd into branch
 	new: fork from base branch, use -c option cd into its worktree
+	delete: delelete a local branch
+	push: push a local branch to remote
 
 EOF
 
