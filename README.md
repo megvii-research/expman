@@ -14,7 +14,7 @@
 In machine learning and other experimental sciences, engineers often need to run multiple experiments simultaneously in order to efficiently search for parameters and validate hypotheses.
 Using Git branches to manage experiments can be very helpful for code comparison and quickly jumping between experiments. 
 However, simple usage of the `git-branch` and `git-checkout` commands can only allow working on a single branch at a time. 
-Git-worktree is a great solution for working on multiple branches simultaneously, but with the number of experiments 📈 potentially reaching into the hundreds or thousands in a short period of time, 🤯 engineers can easily lost themselves.
+Git-worktree is a great solution for working on multiple branches simultaneously, but with the number of experiments 📈 potentially reaching into the hundreds or thousands in a short period of time, 🤯 engineers can easily lose themselves.
 
 ExpMan provides a set of handy commands that not only allows beginners to quickly master parallel operations on multiple branches, but also integrates the incredibly useful [fzf][fzf] for fuzzy searching 🔎 among thousands of branches, enabling engineers to quickly find their desired experiments and significantly improving their efficiency in scientific research.
 
@@ -23,14 +23,14 @@ ExpMan provides a set of handy commands that not only allows beginners to quickl
 **Currently Only Zsh is supported**
 
 1. Install [fzf][fzf]
-2. Download
-```bash
-git clone https://github.com/megvii-research/expman $HOME/.expman
-```
-3. Load expman by adding one line in `~/.zshrc`
-```bash
-echo '[[ -o interactive ]] && source $HOME/.expman/expman.zsh' >> ~/.zshrc
-```
+2. Download ExpMan
+    ```bash
+    git clone https://github.com/megvii-research/expman $HOME/.expman
+    ```
+3. Load ExpMan by adding one line in `~/.zshrc`
+    ```bash
+    echo '[[ -o interactive ]] && source $HOME/.expman/expman.zsh' >> ~/.zshrc
+    ```
 
 ## Get Started
 
@@ -81,7 +81,7 @@ em push <experiment-name>
 em delete <experiment-name>
 ```
 
-**Note**: Only local branch is deleted, to delete a remote branch, use native git comand, or simply use your git-web UI like github.
+**Note**: Only local branch is deleted, to delete a remote branch, use native git command, or simply use your git-web UI like GitHub.
 
 ```bash
 git push <remote> :<branch-name>

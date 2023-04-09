@@ -97,11 +97,11 @@ function _em_cmd_init() {
 	__vgit init
 	touch .gitignore
 	__vgit add .gitignore
-	__vgit commit -am "Initialze empty repo"
+	__vgit commit -am "Initialize empty repo"
 	__vgit branch empty
 	mkdir ${EM_WORK_DIR_NAME}
 	echo "/${EM_WORK_DIR_NAME}" > .gitignore
-	__vgit commit -a --amend -m "Initialze master repo"
+	__vgit commit -a --amend -m "Initialize master repo"
 }
 
 
