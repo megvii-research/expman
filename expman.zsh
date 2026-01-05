@@ -55,7 +55,7 @@ function _em_add_to_gitignore() {
 	work_dir=$(realpath "$work_dir")
 
   # If work_dir is outside of project root, no need to add to .gitignore
-  if [[ "$work_dir" != "$root"* ]]; then
+  if [[ "${work_dir}" != "${root}/"* ]]; then
     return 0
   fi
 
