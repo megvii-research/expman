@@ -1,6 +1,8 @@
 #!/bin/zsh
 
-EM_WORK_DIR_NAME=${EM_WORK_DIR_NAME:=work}
+EM_WORK_DIR_NAME=${EM_WORK_DIR_NAME:=work}  # readonly default work directory name
+_EM_WORKDIR_CONFIG_KEY="expman.workdir.path"
+_EM_WORKDIR_ABSOLUTE_CONFIG_KEY="expman.workdir.absolute"
 
 function _em_print_help() {
 	cat << EOF
@@ -22,9 +24,7 @@ Commands:
 	push: push a local branch to remote
 
 EOF
-
 }
-
 
 function _em_die() {
 	echo "$1"
@@ -33,8 +33,153 @@ function _em_die() {
 }
 
 
-_EM_NEW_PWD=$PWD
 
+function _em_get_work_dir() {
+  local root="`_em_project_root`"
+
+  if [[ "$(git config --get ${_EM_WORKDIR_ABSOLUTE_CONFIG_KEY} 2>/dev/null)" == "true" ]]; then
+    echo "$(git config --get ${_EM_WORKDIR_CONFIG_KEY})"
+  else
+    local work_dir="${root}/$(git config --get ${_EM_WORKDIR_CONFIG_KEY} 2>/dev/null || echo "$EM_WORK_DIR_NAME")"
+		echo $(realpath "$work_dir")
+  fi
+}
+
+
+function _em_add_to_gitignore() {
+  local root="`_em_project_root`"
+  local work_dir="$(_em_get_work_dir)"
+
+	# Use realpath to resolve any symlinks and get absolute paths
+	root=$(realpath "$root")
+	work_dir=$(realpath "$work_dir")
+
+  # If work_dir is outside of project root, no need to add to .gitignore
+  if [[ "$work_dir" != "$root"* ]]; then
+    return 0
+  fi
+
+  # Calculate relative path from root to work_dir
+  local rel_path="${work_dir#$root/}"
+  rel_path="${rel_path%/}"
+
+  # Anchor the path at root with leading slash
+  pattern="/${rel_path}"
+
+  if [[ -f "${root}/.gitignore" ]]; then
+    grep -q "^${pattern}" "${root}/.gitignore" 2>/dev/null || echo "$pattern" >> "${root}/.gitignore"
+  else
+    echo "$pattern" > "${root}/.gitignore"
+  fi
+}
+
+function _em_ensure_work_dir() {
+  local root="`_em_project_root`"
+  local work_dir_name
+
+  work_dir_name="$(git config --get ${_EM_WORKDIR_CONFIG_KEY} 2>/dev/null)"
+  if [[ -n "$work_dir_name" ]]; then
+    return 0
+  fi
+
+  local is_em_project=0
+	[[ -d "${root}/${EM_WORK_DIR_NAME}" ]] && is_em_project=1
+
+  echo "First time using em. Work directory needs to be configured."
+  echo ""
+
+  local repo_name=$(basename "$root")
+  local work_dir_parent_abs="${root}/../${repo_name}.worktrees"
+	work_dir_parent_abs=$(realpath "$work_dir_parent_abs")
+
+  if [[ $is_em_project -eq 1 ]]; then
+    local work_dir_rel="${WORK_DIR_NAME}"
+    local work_dir_abs="${root}/${work_dir_rel}"
+
+    echo "Select worktrees location:"
+    echo "1) Inside project: ${work_dir_rel}/"
+    [[ -d "$work_dir_abs" ]] && echo "   ✓ Directory exists" || echo "   - Will create: $work_dir_abs"
+
+    echo "2) Outside project: ../${repo_name}.worktrees/"
+    [[ -d "$work_dir_parent_abs" ]] && echo "   ✓ Directory exists" || echo "   - Will create: $work_dir_parent_abs"
+
+    echo "3) Custom path"
+    echo ""
+
+    local choice
+    vared -p "Choose [1-3]: " choice
+
+    case "$choice" in
+      1)
+        work_dir_name="$work_dir_rel"
+        ;;
+      2)
+        work_dir_name="../${repo_name}.worktrees"
+        ;;
+      3)
+        vared -p "Enter path: " work_dir_name
+        [[ -z "$work_dir_name" ]] && {
+          echo "Path cannot be empty"
+          return 1
+        }
+        ;;
+      *)
+        echo "Invalid choice"
+        return 1
+        ;;
+    esac
+  else
+    echo "Select worktrees location:"
+    echo "1) Outside project: ../${repo_name}.worktrees/"
+    [[ -d "$work_dir_parent_abs" ]] && echo "   ✓ Directory exists" || echo "   - Will create: $work_dir_parent_abs"
+
+    echo "2) Custom path"
+    echo ""
+
+    local choice
+    vared -p "Choose [1-2]: " choice
+
+    case "$choice" in
+      1)
+        work_dir_name="${work_dir_parent_abs}"
+        ;;
+      2)
+        vared -p "Enter path: " work_dir_name
+        [[ -z "$work_dir_name" ]] && {
+          echo "Path cannot be empty"
+          return 1
+        }
+				work_dir_name=$(realpath "$work_dir_name")
+        ;;
+      *)
+        echo "Invalid choice"
+        return 1
+        ;;
+    esac
+  fi
+
+  if [[ "$work_dir_name" == /* ]]; then
+    git config ${_EM_WORKDIR_ABSOLUTE_CONFIG_KEY} "true"
+  else
+    git config ${_EM_WORKDIR_ABSOLUTE_CONFIG_KEY} "false"
+  fi
+
+  git config ${_EM_WORKDIR_CONFIG_KEY} "$work_dir_name"
+
+  local work_dir="$(_em_get_work_dir)"
+  if [[ ! -d "$work_dir" ]]; then
+    echo "Creating directory: $work_dir"
+    mkdir -p "$work_dir"
+  fi
+
+	_em_add_to_gitignore
+
+  echo "Configuration saved!"
+  return 0
+}
+
+
+_EM_NEW_PWD=$PWD
 
 function _em() {
 	if [[ $# -eq 0 ]]; then
@@ -101,6 +246,11 @@ function _em_cmd_init() {
 	__vgit branch empty
 	mkdir ${EM_WORK_DIR_NAME}
 	echo "/${EM_WORK_DIR_NAME}" > .gitignore
+
+	# Save work directory configuration
+	git config ${_EM_WORKDIR_CONFIG_KEY} "${EM_WORK_DIR_NAME}"
+	git config ${_EM_WORKDIR_ABSOLUTE_CONFIG_KEY} "false"
+
 	__vgit commit -a --amend -m "Initialize master repo"
 }
 
@@ -131,6 +281,8 @@ function _em_cmd_cd() {
 }
 
 function _em_cmd_checkout() {
+	_em_ensure_work_dir || return 1
+
 	local branch=$1
 	local local_branch has_branch=0 checked_out=0
 	[[ -z $branch ]] && {
@@ -152,7 +304,7 @@ function _em_cmd_checkout() {
 		return
 	fi
 
-	local work_tree_dir="`_em_project_root`/${EM_WORK_DIR_NAME}/${local_branch}"
+	local work_tree_dir="$(_em_get_work_dir)/${local_branch}"
 	git rev-parse --quiet --verify $local_branch >/dev/null && has_branch=1
 	if [[ $has_branch == 1 ]]; then
 		__vgit worktree add $work_tree_dir $local_branch || return 1
@@ -172,6 +324,8 @@ function _em_cmd_push() {
 
 
 function _em_cmd_new() {
+	_em_ensure_work_dir || return 1
+
 	local to_checkout="0"
 	while getopts ":c" opt; do
 		[[ $opt == "c" ]] && to_checkout="1"
@@ -189,13 +343,16 @@ function _em_cmd_new() {
 
 	__vgit branch $new_branch $base_branch || return 1
 
-	[[ $to_checkout == "1" ]] && _em_cmd_checkout $new_branch || {
+	[[ $to_checkout == "1" ]] && {
+		_em_cmd_checkout $new_branch
+	} || {
 		echo "new branch: $new_branch"
 		echo "run 'em checkout $new_branch' if you want to check it out"
 	}
 }
 
 function _em_cmd_delete() {
+	_em_ensure_work_dir || return 1
 
 	local branch=$1 checked_out=0 has_branch=0
 
@@ -217,7 +374,7 @@ function _em_cmd_delete() {
 	}
 
 	local root_dir="`_em_project_root`"
-	local work_tree_dir="${root_dir}/${EM_WORK_DIR_NAME}/${branch}"
+	local work_tree_dir="$(_em_get_work_dir)/${branch}"
 
 	if [[ $PWD == $work_tree_dir ]]; then
 		cd $root_dir
