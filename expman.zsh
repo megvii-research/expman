@@ -227,6 +227,23 @@ function _em_project_root() {
 	echo $proj_root
 }
 
+function _em_git_hooks_dir() {
+	local gitdir=$(git rev-parse --git-dir)
+	gitdir=`realpath $gitdir`
+	echo "$gitdir/hooks"
+}
+
+function _em_exec_hook() {
+	local hook_name=$1
+	shift
+	local hooks_dir=$(_em_git_hooks_dir)
+	local hook_script="${hooks_dir}/expman-${hook_name}"
+	if [[ -x "${hook_script}" ]]; then
+		local project_root=$(_em_project_root)
+		EM_PROJECT_ROOT=$project_root "${hook_script}" "$@"
+	fi
+}
+
 
 function _em_cmd_init() {
 	if [[ $# -eq 0 ]]; then
@@ -250,6 +267,9 @@ function _em_cmd_init() {
 	# Save work directory configuration
 	git config ${_EM_WORKDIR_CONFIG_KEY} "${EM_WORK_DIR_NAME}"
 	git config ${_EM_WORKDIR_ABSOLUTE_CONFIG_KEY} "false"
+
+	# execute hook
+	_em_exec_hook "init-before-commit" "$reponame"
 
 	__vgit commit -a --amend -m "Initialize master repo"
 }
@@ -312,6 +332,10 @@ function _em_cmd_checkout() {
 		# if local branch does not exist, create it
 		__vgit worktree add $work_tree_dir -b $local_branch $branch || return 1
 	fi
+
+	# hook
+	_em_exec_hook "post-checkout" "$local_branch" "$work_tree_dir"
+
 	_EM_NEW_PWD=$work_tree_dir
 }
 

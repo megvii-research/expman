@@ -1,0 +1,4 @@
+#!/bin/bash
+
+echo "project root dir: $EM_PROJECT_ROOT"
+echo "repo name: $1"

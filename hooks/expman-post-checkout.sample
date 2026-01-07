@@ -1,0 +1,5 @@
+#!/bin/bash
+
+echo "project root dir: $EM_PROJECT_ROOT"
+echo "local branch: $1"
+echo "worktree dir: $2"
