@@ -93,7 +93,7 @@ function _em_ensure_work_dir() {
 	work_dir_parent_abs=$(realpath "$work_dir_parent_abs")
 
   if [[ $is_em_project -eq 1 ]]; then
-    local work_dir_rel="${WORK_DIR_NAME}"
+    local work_dir_rel="${EM_WORK_DIR_NAME}"
     local work_dir_abs="${root}/${work_dir_rel}"
 
     echo "Select worktrees location:"
